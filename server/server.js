@@ -150,6 +150,7 @@ const port=Number(process.env.PORT||3000);
 async function startServer(){
   try{
     await initDatabase();
+    await seedAdmin();
     app.listen(port,()=>console.log(`Sarkar production server listening on :${port}`));
   }catch(error){
     console.error('Database initialization failed:',error);
