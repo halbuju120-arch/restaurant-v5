@@ -1,0 +1,136 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SARKAR Restaurant Admin V11</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f5efe2;margin:0}
+.header{background:#e9d7a8;padding:16px;font-size:28px;font-weight:bold}
+.wrap{max-width:900px;margin:auto;padding:14px}
+.card{background:#fff;border-radius:16px;padding:16px;margin:14px 0;border:1px solid #ddd}
+input,textarea{width:100%;padding:10px;margin:6px 0;border:1px solid #ccc;border-radius:10px;box-sizing:border-box}
+button{background:#b8860b;color:#fff;border:0;padding:10px 14px;border-radius:10px;margin:4px;cursor:pointer}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.item{border:1px solid #ddd;border-radius:12px;padding:10px;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="header">🍛 SARKAR Restaurant Admin</div>
+<div class="wrap">
+
+<div id="loginCard" class="card">
+<h3>Owner Login</h3>
+<input id="email" value="owner@sarkar.com">
+<input id="password" type="password" value="Sarkar@123">
+<button onclick="login()">Login</button>
+<p id="msg"></p>
+</div>
+
+<div id="panel" style="display:none">
+
+<div class="card">
+<h3>📊 Dashboard</h3>
+<div class="grid">
+<div><b id="count">0</b><br>Products</div>
+<div><b id="online">Live</b><br>Status</div>
+</div>
+</div>
+
+<div class="card">
+<h3>🏠 Site Settings</h3>
+<input id="brandBn" placeholder="বাংলা নাম">
+<input id="brandEn" placeholder="English name">
+<textarea id="address" placeholder="ঠিকানা"></textarea>
+<button onclick="saveSettings()">Save Settings</button>
+</div>
+
+<div class="card">
+<h3>🖼 Hero</h3>
+<input id="heroTitle" placeholder="Hero title">
+<input id="heroSub" placeholder="Hero subtitle">
+<button onclick="saveHero()">Save Hero</button>
+</div>
+
+<div class="card">
+<h3>🍽 Menu Management</h3>
+<input id="name" placeholder="পণ্যের নাম">
+<input id="price" type="number" placeholder="দাম">
+<textarea id="desc" placeholder="বিবরণ"></textarea>
+<button onclick="addProduct()">+ Add Product</button>
+</div>
+
+<div class="card">
+<h3>📦 Product List</h3>
+<div id="products"></div>
+</div>
+
+<div class="card">
+<h3>👥 Customer Management</h3>
+<div id="customers">Loading...</div>
+</div>
+
+<div class="card">
+<h3>🛒 Orders</h3>
+<div id="orders">Loading...</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const TOKEN='sarkarAdminTokenV1';
+const h=()=>{let x={'Content-Type':'application/json'};let t=localStorage.getItem(TOKEN);if(t)x.Authorization='Bearer '+t;return x}
+
+async function api(path,opt={}){
+ const r=await fetch(path,{headers:h(),...opt});
+ if(r.status===401){localStorage.removeItem(TOKEN);panel.style.display='none';loginCard.style.display='block';throw Error('login')}
+ const txt=await r.text(); try{return JSON.parse(txt)}catch{return txt}
+}
+
+async function login(){
+ const j=await api('/api/auth/login',{method:'POST',body:JSON.stringify({email:email.value,password:password.value})});
+ if(j.token){localStorage.setItem(TOKEN,j.token);start()} else msg.textContent=j.error||'Login failed';
+}
+async function start(){loginCard.style.display='none';panel.style.display='block';loadAll()}
+
+async function loadAll(){await Promise.all([loadProducts(),loadCustomers(),loadOrders(),loadSettings()])}
+
+async function loadSettings(){
+ try{
+  let s=await api('/api/settings');
+  brandBn.value=s.brandBn||'';brandEn.value=s.brandEn||'';address.value=s.address||'';heroTitle.value=s.heroTitle||'';heroSub.value=s.heroSub||'';
+ }catch{}
+}
+async function saveSettings(){await api('/api/settings',{method:'PUT',body:JSON.stringify({brandBn:brandBn.value,brandEn:brandEn.value,address:address.value})});alert('Saved')}
+async function saveHero(){await api('/api/settings',{method:'PUT',body:JSON.stringify({heroTitle:heroTitle.value,heroSub:heroSub.value})});alert('Hero Saved')}
+
+async function loadProducts(){
+ let list=await api('/api/products'); if(!Array.isArray(list)) list=[];
+ count.textContent=list.length;
+ products.innerHTML='';
+ list.forEach(p=>{
+  let d=document.createElement('div');d.className='item';
+  d.innerHTML=`<b>${p.name}</b><br>৳ ${p.price}<br>${p.desc||''}<br><button onclick="editProduct('${p.id}','${(p.name||'').replace(/'/g,"&#39;")}',${p.price||0})">Edit</button><button onclick="delProduct('${p.id}')">Delete</button>`;
+  products.appendChild(d);
+ })
+}
+async function addProduct(){
+ await api('/api/admin/products',{method:'POST',body:JSON.stringify({name:name.value,price:Number(price.value),desc:desc.value,image:'',video:'',published:true})});
+ name.value='';price.value='';desc.value='';loadProducts();
+}
+async function editProduct(id,n,p){
+ const nn=prompt('নাম',n); if(nn===null)return;
+ const pp=prompt('দাম',p); if(pp===null)return;
+ await api('/api/admin/products/'+id,{method:'PUT',body:JSON.stringify({name:nn,price:Number(pp)})});loadProducts();
+}
+async function delProduct(id){if(!confirm('Delete?'))return;await api('/api/admin/products/'+id,{method:'DELETE'});loadProducts()}
+
+async function loadCustomers(){try{let c=await api('/api/admin/customers');customers.textContent=Array.isArray(c)?c.length+' জন':'কোনো ডেটা নেই'}catch{customers.textContent='API available হলে দেখাবে'}}
+async function loadOrders(){try{let o=await api('/api/admin/orders');orders.textContent=Array.isArray(o)?o.length+' টি':'কোনো ডেটা নেই'}catch{orders.textContent='API available হলে দেখাবে'}}
+
+if(localStorage.getItem(TOKEN))start();
+</script>
+</body>
+</html>
