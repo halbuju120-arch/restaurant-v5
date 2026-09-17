@@ -39,6 +39,7 @@ async function seedAdmin() {
   console.log("Admin user ready:", process.env.ADMIN_EMAIL);
 }
 const allowedStatuses=new Set(['NEW','ACCEPTED','PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED','CANCELLED']);
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(helmet({contentSecurityPolicy:false}));
 app.use(cors({origin:process.env.CORS_ORIGIN?.split(',').map(x=>x.trim())||false}));
