@@ -24,7 +24,9 @@ async function initDatabase(){
   console.log('Database schema initialized successfully.');
 }
 async function seedAdmin() {
-  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) return;
+  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+  throw new Error("ADMIN_EMAIL or ADMIN_PASSWORD missing");
+  }
 
   const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
 
