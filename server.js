@@ -23,6 +23,21 @@ async function initDatabase(){
   await pool.query(schema);
   console.log('Database schema initialized successfully.');
 }
+async function seedAdmin() {
+  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) return;
+
+  const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
+
+  await pool.query(
+    `INSERT INTO admins(email,password_hash)
+     VALUES($1,$2)
+     ON CONFLICT(email)
+     DO UPDATE SET password_hash=EXCLUDED.password_hash`,
+    [process.env.ADMIN_EMAIL, hash]
+  );
+
+  console.log("Admin user ready:", process.env.ADMIN_EMAIL);
+}
 const allowedStatuses=new Set(['NEW','ACCEPTED','PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED','CANCELLED']);
 app.disable('x-powered-by');
 app.use(helmet({contentSecurityPolicy:false}));
@@ -132,6 +147,7 @@ const port=Number(process.env.PORT||3000);
 async function startServer(){
   try{
     await initDatabase();
+    await seedAdmin();
     app.listen(port,()=>console.log(`Sarkar production server listening on :${port}`));
   }catch(error){
     console.error('Database initialization failed:',error);
