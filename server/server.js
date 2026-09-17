@@ -23,6 +23,24 @@ async function initDatabase(){
   await pool.query(schema);
   console.log('Database schema initialized successfully.');
 }
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+async function seedAdmin() {
+  if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) return;
+
+  const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD, 12);
+
+  await pool.query(
+    `INSERT INTO admins(email,password_hash)
+     VALUES($1,$2)
+     ON CONFLICT(email)
+     DO UPDATE SET password_hash=EXCLUDED.password_hash`,
+    [process.env.ADMIN_EMAIL.toLowerCase(), hash]
+  );
+
+  console.log("Admin user ready:", process.env.ADMIN_EMAIL);
+}
+
 const allowedStatuses=new Set(['NEW','ACCEPTED','PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED','CANCELLED']);
 app.disable('x-powered-by');
 app.use(helmet({contentSecurityPolicy:false}));
