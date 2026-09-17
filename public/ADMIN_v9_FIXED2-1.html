@@ -76,9 +76,14 @@ function fill(){let s=site();['brandBn','brandEn','address','addressEn','logo','
 async function saveSite(){let s=site();['brandBn','brandEn','address','addressEn','logo','popularTitle','popularSub','menuTitle','menuSub','cartTitle','cartSub','ordersTitle','ordersSub','profileTitle','profileSub','profileContent','deliveryFee','heroTitle','heroSub','heroButton','heroImage','heroVideo'].forEach(k=>{let e=document.getElementById(k);if(e)s[k]=e.value});s.open=open.checked;try{const saved=await api('/api/settings',{method:'PUT',body:JSON.stringify(s)});set(S,saved);alert('Restaurant Settings saved')}catch(e){alert(e.message)}}
 function renderUpdates(){let s=site();updates.innerHTML=(s.ticker||[]).map((x,i)=>`<div class="row" style="margin:5px 0"><input data-u="${i}" value="${esc(x)}"><button class="btn red" onclick="delUpdate(${i})">Delete</button></div>`).join('')}
 function addUpdate(){let s=site();s.ticker=[...(s.ticker||[]),'নতুন Daily Update'];set(S,s);renderUpdates()}function delUpdate(i){let s=site();s.ticker.splice(i,1);set(S,s);renderUpdates();saveSite()}async function saveUpdates(){let s=site();s.ticker=[...document.querySelectorAll('[data-u]')].map(e=>e.value).filter(Boolean);try{const saved=await api('/api/settings',{method:'PUT',body:JSON.stringify(s)});set(S,saved);alert('Updates saved')}catch(e){alert(e.message)}}
-function backgrounds(){return get(B,DEFB)}function addBackground(){let b=backgrounds();b.push({id:'b'+Date.now(),url:'',published:true});set(B,b);renderBackgrounds()}function delBg(i){let b=backgrounds();b.splice(i,1);set(B,b);renderBackgrounds()}function saveBackgrounds(){let b=backgrounds();b=[...document.querySelectorAll('[data-bg]')].map((e,i)=>({id:b[i]?.id||'b'+Date.now()+i,url:e.value,published:document.querySelector(`[data-bgp="${i}"]`).checked}));set(B,b);alert('Backgrounds saved')}
-function renderBackgrounds(){let b=backgrounds();backgroundsEl=document.getElementById('backgrounds');backgroundsEl.innerHTML=b.map((x,i)=>`<div class="item"><label>Photo URL</label><input data-bg="${i}" value="${esc(x.url)}"><label class="switch"><input data-bgp="${i}" type="checkbox" ${x.published?'checked':''}> Publish</label><button class="btn red" onclick="delBg(${i})">Delete</button></div>`).join('')||'<div style="font-size:10px;color:#8b7b64">No background photos added.</div>'}
-  
+
+function renderBackgrounds(){
+  let b = backgrounds();
+  const backgroundsEl = document.getElementById('backgrounds');
+  if(!backgroundsEl) return;
+  backgroundsEl.innerHTML = '';
+}
+
 function renderProducts(){
   const box = document.getElementById('products');
   if(!box) return;
@@ -94,29 +99,8 @@ function renderProducts(){
       </div>
     </div>
   `).join('');
-  }
-  
-async function addProduct(){
-  const name = prompt("পণ্যের নাম");
-  if(!name) return;
-
-  const price = Number(prompt("দাম", "180"));
-  if(!price) return;
-
-  await api('/api/admin/products', {
-    method: 'POST',
-    body: JSON.stringify({
-      name,
-      price,
-      desc: "",
-      image: "",
-      video: "",
-      published: true
-    })
-  });
-
-  location.reload();
 }
+  
 async function delProduct(i){let p=prods();if(!p[i])return;if(!confirm('এই menu item delete করবেন?'))return;try{await api('/api/admin/products/'+encodeURIComponent(p[i].id),{method:'DELETE'});p.splice(i,1);set(P,p);renderProducts()}catch(e){alert(e.message)}}
 async function saveProduct(i){let p=prods(),box=document.querySelector(`[data-prod="${i}"]`),q={id:p[i]?.id};box.querySelectorAll('[data-k]').forEach(e=>q[e.dataset.k]=e.type==='checkbox'?e.checked:e.value);q.price=Number(q.price||0);try{const x=await api('/api/admin/products/'+encodeURIComponent(q.id),{method:'PUT',body:JSON.stringify(q)});p[i]=x;set(P,p);renderProducts();alert('Menu item saved')}catch(e){alert(e.message)}}
 function orders(){return get(O,[])}
