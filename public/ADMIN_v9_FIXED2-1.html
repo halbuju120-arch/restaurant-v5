@@ -78,6 +78,24 @@ function renderUpdates(){let s=site();updates.innerHTML=(s.ticker||[]).map((x,i)
 function addUpdate(){let s=site();s.ticker=[...(s.ticker||[]),'নতুন Daily Update'];set(S,s);renderUpdates()}function delUpdate(i){let s=site();s.ticker.splice(i,1);set(S,s);renderUpdates();saveSite()}async function saveUpdates(){let s=site();s.ticker=[...document.querySelectorAll('[data-u]')].map(e=>e.value).filter(Boolean);try{const saved=await api('/api/settings',{method:'PUT',body:JSON.stringify(s)});set(S,saved);alert('Updates saved')}catch(e){alert(e.message)}}
 function backgrounds(){return get(B,DEFB)}function addBackground(){let b=backgrounds();b.push({id:'b'+Date.now(),url:'',published:true});set(B,b);renderBackgrounds()}function delBg(i){let b=backgrounds();b.splice(i,1);set(B,b);renderBackgrounds()}function saveBackgrounds(){let b=backgrounds();b=[...document.querySelectorAll('[data-bg]')].map((e,i)=>({id:b[i]?.id||'b'+Date.now()+i,url:e.value,published:document.querySelector(`[data-bgp="${i}"]`).checked}));set(B,b);alert('Backgrounds saved')}
 function renderBackgrounds(){let b=backgrounds();backgroundsEl=document.getElementById('backgrounds');backgroundsEl.innerHTML=b.map((x,i)=>`<div class="item"><label>Photo URL</label><input data-bg="${i}" value="${esc(x.url)}"><label class="switch"><input data-bgp="${i}" type="checkbox" ${x.published?'checked':''}> Publish</label><button class="btn red" onclick="delBg(${i})">Delete</button></div>`).join('')||'<div style="font-size:10px;color:#8b7b64">No background photos added.</div>'}
+  
+function renderProducts(){
+  const box = document.getElementById('products');
+  if(!box) return;
+
+  const list = get('P', []);
+  box.innerHTML = list.map((p,i)=>`
+    <div class="box" style="margin:8px 0">
+      <b>${esc(p.name || '')}</b><br>
+      ৳ ${Number(p.price || 0)}
+      <div style="margin-top:8px">
+        <button class="btn soft" onclick="saveProduct(${i})">Save</button>
+        <button class="btn soft" onclick="delProduct(${i})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+  }
+  
 async function addProduct(){try{const x=await api('/api/admin/products',{method:'POST',body:JSON.stringify({name:'নতুন গরুর মাংসের বিরিয়ানি',en:'BEEF BIRYANI',price:180,desc:'',image:'',video:'',published:true})});let p=prods();p.push(x);set(P,p);renderProducts()}catch(e){alert(e.message)}}
 async function delProduct(i){let p=prods();if(!p[i])return;if(!confirm('এই menu item delete করবেন?'))return;try{await api('/api/admin/products/'+encodeURIComponent(p[i].id),{method:'DELETE'});p.splice(i,1);set(P,p);renderProducts()}catch(e){alert(e.message)}}
 async function saveProduct(i){let p=prods(),box=document.querySelector(`[data-prod="${i}"]`),q={id:p[i]?.id};box.querySelectorAll('[data-k]').forEach(e=>q[e.dataset.k]=e.type==='checkbox'?e.checked:e.value);q.price=Number(q.price||0);try{const x=await api('/api/admin/products/'+encodeURIComponent(q.id),{method:'PUT',body:JSON.stringify(q)});p[i]=x;set(P,p);renderProducts();alert('Menu item saved')}catch(e){alert(e.message)}}
